@@ -13,7 +13,8 @@ import requests
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import os
-
+from scipy.integrate import trapz, cumtrapz, simps
+import numpy as np
 
 def Get_USGS_Peaks(gage):  
     url = 'https://nwis.waterdata.usgs.gov/ny/nwis/peak?site_no={}&agency_cd=USGS&format=rdb'.format(gage)
@@ -159,4 +160,35 @@ def read_usgs_65_iv(f):
 
 
 
-    
+def CompareVolumes(instantaneous, daily, units = 60):
+    # units for y values in cfs shuld be seconds, if resampled to 1 minute, value should be 60 
+    ins = pd.DataFrame(instantaneous.copy())
+    ins*=units
+
+    dlymn = pd.DataFrame(daily.copy())
+    dlymn*=units
+
+    inst_volume, daily_volume = trapz(np.array(ins), x=None, dx=1.0, axis=0), trapz(np.array(dlymn), x=None, dx=1.0, axis=0)
+    print('Volume from Instantaneous Observations = \t{}'.format(int(inst_volume)))
+    print('Volume from Daily Mean Observations = \t\t{}'.format(int(daily_volume)))
+    print('\nUsing Daily means yields = {} more Cubic Feet of Water'.format(int(daily_volume-inst_volume)))
+    print('(Daily means results in a difference of volume of ~ {}% )'.format(float(100*(daily_volume-inst_volume)/inst_volume)))
+
+
+def PlotCumIntegral(instantaneous, daily, units = 60):
+    #--Plot Cumlative flow (integrated)
+    f, ax = plt.subplots()
+    ax.set_title('Cumulative Trapezoid')
+
+    x = np.array(daily)*60
+    ct = cumtrapz(x)
+    ax.plot(ct, label = 'daily')
+
+    x = np.array(instantaneous)*60
+    ct = cumtrapz(x)
+    ax.plot(ct, label = 'inst')
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    plt.grid()
