@@ -2,8 +2,8 @@
 """
 @author: slawler
 """
-
 import pandas as pd
+import h5py
 import requests
 import json
 from datetime import datetime
@@ -15,7 +15,18 @@ import matplotlib.pyplot as plt
 import os
 from scipy.integrate import trapz, cumtrapz, simps
 import numpy as np
+import os
+from glob import glob
 from IPython.display import Markdown, display
+
+def initialize_test_case(plot=False):
+    #--Read in gage data
+    data_dir =os.path.join(os.getcwd(), 'sample_data')
+    tsvs = glob(os.path.join(data_dir, '04119000*'))
+    #print('\n')    
+    printbold("Read in USGS Gage Records")    
+    df = MergeDatsets(tsvs) 
+    return df
 
 def printbold(string):
     display(Markdown('**'+string+'**'))
@@ -137,7 +148,6 @@ def GotoUSGS(state):
     print("\nCLICK HERE FOR USGS GAGES: \n", url)
     print("\nCLICK HERE FOR MAP: \n", 'https://maps.waterdata.usgs.gov/mapper/index.html')
 
-
 def read_usgs_60_dv(f):
     gage = os.path.basename(f).split('.')[0]
     df = pd.read_csv(f, sep='\t')
@@ -162,45 +172,27 @@ def read_usgs_65_iv(f):
     df.drop(axis=1,labels =['dateTime','agency_cd','site_no', 'GH_Inst_cd', 'tz_cd'], inplace=True)
     return df
 
+def IntegrateHydrograph(timeseries, da_sqft, method = 'trapezoid'):
+    from scipy import integrate
+    '''Flow should be given in units of cfs, index should be time series'''
+    data = timeseries.resample('1S').asfreq().interpolate()
+    da_acres = 640*da_sqft
+    
+    if method == 'simpson':
+        volume_acre_inches = volume*0.00027548209085905
+        inches = volume_acre_inches/da_acres
+        volume = integrate.simps(np.array(data.values), x=None, dx=1, axis=0, even='avg')
+    else:
+        volume = trapz(np.array(data.values), x=None, dx=1.0, axis=0)
+        volume_acre_inches = volume*0.00027548209085905
+        inches = volume_acre_inches/da_acres
+        
+    return round(float(inches), 2)
 
-
-def CompareVolumes(instantaneous, daily, units = 60):
-    '''
-    Compare (unstretched) daily flows with instantaneous flows 
-    '''
-    # units for y values in cfs shuld be seconds, if resampled to 1 minute, value should be 60 
-    ins = pd.DataFrame(instantaneous.copy())
-    ins*=units
-
-    dlymn = pd.DataFrame(daily.copy())
-    dlymn*=units
-
-    inst_volume, daily_volume = trapz(np.array(ins), x=None, dx=1.0, axis=0), trapz(np.array(dlymn), x=None, dx=1.0, axis=0)
-    print('Volume from Instantaneous Observations = \t{}'.format(int(inst_volume)))
-    print('Volume from Daily Mean Observations = \t\t{}'.format(int(daily_volume)))
-    print('\nUsing Daily means yields = {} more Cubic Feet of Water'.format(int(daily_volume-inst_volume)))
-    print('(Daily means results in a difference of volume of ~ {}% )'.format(float(100*(daily_volume-inst_volume)/inst_volume)))
-
-
-def CompareVolumes_stretched(instantaneous, daily, units = 60):
-    '''
-    Compare  stretched daily flows 
-    '''
-    # units for y values in cfs shuld be seconds, if resampled to 1 minute, value should be 60 
-    ins = pd.DataFrame(instantaneous.copy())
-    ins*=units
-
-    dlymn = pd.DataFrame(daily.copy())
-    dlymn*=units
-
-    inst_volume, daily_volume = trapz(np.array(ins), x=None, dx=1.0, axis=0), trapz(np.array(dlymn), x=None, dx=1.0, axis=0)
-    print('Volume from Instantaneous Observations = \t{}'.format(int(inst_volume)))
-    print('Volume from Stretched Daily Mean Observations = \t\t{}'.format(int(daily_volume)))
-    print('\nUsing Stretched Daily means yields = {} more Cubic Feet of Water'.format(int(daily_volume-inst_volume)))
-    print('(Streteched Daily means results in a difference of volume of ~ {}% )'.format(float(100*(daily_volume-inst_volume)/inst_volume)))
-
-
+'''
+!NEED TO UPDATE FUNCTION USING IntegrateHydrograph Approach
 def PlotCumIntegral(instantaneous, daily, units = 60):
+
     #--Plot Cumlative flow (integrated)
     f, ax = plt.subplots(figsize=(10,2))
     ax.set_title('Cumulative Trapezoid')
@@ -217,3 +209,66 @@ def PlotCumIntegral(instantaneous, daily, units = 60):
     ax.legend(handles, labels)
     #plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.grid()
+'''
+
+#--RAS UTILS
+def GetRasData(hdf_plan_file, station):
+    with h5py.File(hdf_plan_file ,'r') as hf:
+        xs = hf.get('/Results/Steady/Output/Geometry Info/Cross Section Only')[:]
+        xs = pd.DataFrame([x.astype(str).split(' ') for x in xs], columns=['River', 'Reach', 'Station'])
+
+        flows = hf.get('/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections/Flow')[:]
+        flows = pd.DataFrame(flows)
+
+        stages = hf.get('/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections/Water Surface')[:]
+        stages = pd.DataFrame(stages)
+        
+    idx = xs[xs['Station'] == str(station)].index[0]
+    q = flows[idx]
+    s = stages[idx]
+
+    df = pd.DataFrame({'flow':q, 'stage':s})
+    df.name = station   
+    df.sort_values(by='flow', inplace=True)
+    printbold('RAS Data for XS {}'.format(df.name))
+    return df
+
+def StageDischargePlot(df, figsize = (7,5)):
+    x, y = df['flow'], df['stage']
+    f, (ax) = plt.subplots()
+    ax.plot(x,y)
+    ax.grid()
+    ax.set_ylabel('Stage (ft)')
+    ax.set_xlabel('Flow (cfs)')
+    ax.set_xlim(0, x.max()*1.1)
+    ax.set_title('Rating Curve for XS {}'.format(df.name))
+    f.set_size_inches(figsize)
+    f.autofmt_xdate()
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+def ComputeWeirFlow(df, breach_height, weir_coeff = 2.0, breach_length = 250, plot=True):
+    min_stage = float(df.stage.min())
+    df['head'] = df['stage']-breach_height
+    df = df.query('head > 0 or head == 0')
+    df['weir_flow'] = weir_coeff*breach_length*df['head']**(2/3)
+    if plot: 
+        f, (ax1, ax2, ax3) = plt.subplots(1,3, figsize = (12,5))
+        
+        ax1.plot(df['stage'],color = 'green',label = 'River Stage (ft) at Breach Location')
+        ax1.grid()
+        ax1.legend(loc= 'best',  fontsize='x-small')
+        
+        
+        ax2.plot(df['head'],color = 'green',label = 'Head (ft) at Breach Location')
+        ax2.grid()
+        ax2.legend(loc= 'best',  fontsize='x-small')
+        
+        
+        ax3.plot(df['weir_flow'],color = 'blue',label = 'Weir Flow (cfs)')
+        ax3.grid()
+        ax3.legend(loc= 'best',  fontsize='small')
+
+        f.autofmt_xdate()
+        
+    
+    return pd.DataFrame(df)
