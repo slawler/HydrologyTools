@@ -233,7 +233,7 @@ def GetRasData(hdf_plan_file, station):
     printbold('RAS Data for XS {}'.format(df.name))
     return df
 
-def StageDischargePlot(df, figsize = (7,5)):
+def StageDischargePlot(df, figsize = (2,3)):
     x, y = df['flow'], df['stage']
     f, (ax) = plt.subplots()
     ax.plot(x,y)
@@ -246,7 +246,10 @@ def StageDischargePlot(df, figsize = (7,5)):
     f.autofmt_xdate()
     plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 
-def ComputeWeirFlow(df, breach_height, weir_coeff = 2.0, breach_length = 250, plot=True):
+
+
+def ComputeWeirFlow(df, breach_height, date_int, weir_coeff=2.0, breach_length=250, plot=True):
+    import matplotlib.dates as mdates
     min_stage = float(df.stage.min())
     df['head'] = df['stage']-breach_height
     df = df.query('head > 0 or head == 0')
@@ -258,17 +261,44 @@ def ComputeWeirFlow(df, breach_height, weir_coeff = 2.0, breach_length = 250, pl
         ax1.grid()
         ax1.legend(loc= 'best',  fontsize='x-small')
         
-        
+        ax2.set_title('Normalized Hydrographs based on Breach Elevation \n')
         ax2.plot(df['head'],color = 'green',label = 'Head (ft) at Breach Location')
         ax2.grid()
         ax2.legend(loc= 'best',  fontsize='x-small')
-        
         
         ax3.plot(df['weir_flow'],color = 'blue',label = 'Weir Flow (cfs)')
         ax3.grid()
         ax3.legend(loc= 'best',  fontsize='small')
 
+        days = mdates.HourLocator(interval = date_int)   # every year
+        dateFmt = mdates.DateFormatter('%Y-%m-%d :%H:%M')
+        ax1.xaxis.set_major_formatter(dateFmt)
+        ax1.xaxis.set_major_locator(days)
+        ax2.xaxis.set_major_formatter(dateFmt)
+        ax2.xaxis.set_major_locator(days)
+        ax3.xaxis.set_major_formatter(dateFmt)
+        ax3.xaxis.set_major_locator(days)
+
+
+
         f.autofmt_xdate()
         
     
     return pd.DataFrame(df)
+
+def GetRasWSE(hdf_plan_file, profile):
+    with h5py.File(hdf_plan_file ,'r') as hf:
+        xs = hf.get('/Results/Steady/Output/Geometry Info/Cross Section Only')[:]
+        xs = pd.DataFrame([x.astype(str).split(' ') for x in xs], columns=['River', 'Reach', 'Station'])   
+        
+        profiles = hf.get('/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Profile Names')[:]
+        profiles = pd.DataFrame({'p': profiles[:]})
+        profiles['p'] = profiles['p'].str.decode("utf-8")
+        idx = profiles[profiles['p'] == profile].index[0]
+
+        stages = hf.get('/Results/Steady/Output/Output Blocks/Base Output/Steady Profiles/Cross Sections/Water Surface')[:]
+        stages = pd.DataFrame(stages)
+        stages = pd.DataFrame({profile: stages.iloc[0]})
+        
+    df = pd.merge(xs, stages, left_index=True, right_index=True, how = 'inner')
+    return df

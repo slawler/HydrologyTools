@@ -142,14 +142,51 @@ def Hydrograph_100yr(df, peak):
     return pd.DataFrame(daily_peak)
 
 def plotcomp(hydro, rawfitline, breach_stage=0):
+    
     stage = rawfitline(hydro['Base Hydrograph'])
-    f, (ax) = plt.subplots()
-    ax.plot(hydro.index, stage, label = 'Flood Stage (ft)')
-    ax.axhline(breach_stage, color = 'red', label = 'Breach Height')
+    f, (ax, ax1) = plt.subplots(1,2, figsize = (10,3))
+    ax.plot(hydro.index, hydro['Base Hydrograph'], label = '1 Pct Flow (cfs)')
     ax.legend(loc='best',  fontsize='small')
-    f.set_size_inches(6,4)
     ax.grid()
+
+    ax1.plot(hydro.index, stage, label = 'Flood Stage (ft)')
+    ax1.axhline(breach_stage, color = 'red', label = 'Breach Height')
+    ax1.legend(loc='best',  fontsize='small')
+    ax1.grid()
+
+    #--Format the Plots
+    import matplotlib.dates as mdates
+    ax.set_title('Flow Hydrograph \n (input from smoothed storm )')
+    days = mdates.DayLocator()   # every year
+    dateFmt = mdates.DateFormatter('%Y-%m-%d')
+    ax.xaxis.set_major_formatter(dateFmt)
+    ax.xaxis.set_major_locator(days)
+
+    ax1.set_title('Stage Hydrograph \n(output using rating curve above)')
+    ax1.xaxis.set_major_locator(days)
+    ax1.xaxis.set_major_formatter(dateFmt)    
     f.autofmt_xdate()
+
     stage = pd.DataFrame( stage, index = hydro.index)
     stage.rename(columns = {0: 'stage'}, inplace=True)
+
     return stage
+
+
+
+def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, data_dir, date_int=6):
+    df = GetRasData(rasdata, station)
+
+    # Plot a Rating Curve using Stage & Flow data
+    StageDischargePlot(df, figsize=(5,3))
+    poly_order = 3
+    polyfit  = np.polyfit(df['flow'],df['stage'],poly_order)
+    polyfitline = np.poly1d(polyfit) 
+    hydro =pd.DataFrame(base_hydrograph)
+    stage = plotcomp(hydro, polyfitline,breach_elev)
+    df_weir = ComputeWeirFlow(stage, breach_elev, date_int) 
+    output_csv = os.path.join(data_dir, 'BreachData_{}_location_{}.tsv'.format(station, breach_point))
+    df_weir.to_csv(output_csv, sep = '\t')
+    
+    printbold('\nInflow Data for Breach Location: ')
+    print(output_csv)   
