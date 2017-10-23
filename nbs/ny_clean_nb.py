@@ -5,15 +5,16 @@ import utils; reload(utils)
 from utils import *
 import os
 from glob import glob
+from pathlib import Path
 
 
 def initialize(plot=False):
     #--Read in gage data
-    data_dir =os.path.join(os.getcwd(), 'sample_data')
+    data_dir = os.path.join(str(Path(os.getcwd()).parents[0]),'sample_data')
     tsvs = glob(os.path.join(data_dir, '015*'))
     metadata = os.path.join(data_dir ,'gage_metadata.tsv')
     df = MergeDatsets(tsvs) 
-    return df
+    return df, data_dir
 
 
 def Daily_vs_Instant(df):

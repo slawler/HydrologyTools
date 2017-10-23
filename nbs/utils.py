@@ -21,12 +21,12 @@ from IPython.display import Markdown, display
 
 def initialize_test_case(plot=False):
     #--Read in gage data
-    data_dir =os.path.join(os.getcwd(), 'sample_data')
+    data_dir = os.path.join(str(Path(os.getcwd()).parents[0]),'sample_data')
     tsvs = glob(os.path.join(data_dir, '04119000*'))
     #print('\n')    
     printbold("Read in USGS Gage Records")    
     df = MergeDatsets(tsvs) 
-    return df
+    return df, data_dir
 
 def printbold(string):
     display(Markdown('**'+string+'**'))
