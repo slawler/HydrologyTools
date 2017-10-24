@@ -173,7 +173,6 @@ def plotcomp(hydro, rawfitline, breach_stage=0):
     return stage
 
 
-
 def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, data_dir, date_int=6):
     df = GetRasData(rasdata, station)
 
@@ -190,3 +189,50 @@ def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, 
     
     printbold('\nInflow Data for Breach Location: ')
     print(output_csv)   
+
+def init_base_hydro(gage_data, peak=14209.0, pct_1=20960.0):
+    pct_1_peak, inst_peak  = Stretched_Daily_100yr(gage_data, plot = False)
+    stretch_1pct = pct_1/peak 
+    smooth_storm_resample = inst_peak.resample('30T').mean()
+    smooth_storm_1pct = smooth_storm_resample*stretch_1pct
+    #print('Factor: \n','\t1 Percent\t{}'.format(stretch_1pct))
+
+    f, ax = plt.subplots()
+    ax.plot(smooth_storm_1pct,color = 'green',label = 'Base Hydrograph from Gage, stretched to 1-Pct')
+    ax.grid()
+    ax.legend(loc='best')
+    title = '{} - {}'.format(smooth_storm_1pct.index[0],smooth_storm_1pct.index[-1])
+    ax.set_title(title)
+
+    f.set_size_inches(6,4)
+    f.autofmt_xdate()
+    return smooth_storm_1pct
+
+def smooth_base_hydro(smooth_storm_1pct):
+    # 1. Make a copy of the unsmoothed hydrograph: 
+    final_hydrograph  = smooth_storm_1pct.copy()
+
+    #2. Replace the dates of the portions needing to be smoothed with NaNs
+    final_hydrograph['2005-04-02 00:00':'2005-04-03 00:00'] = np.nan #
+
+    #3. Set the first data point to the desired starting value 
+    # Note: Typically the starting and ending values will be the same, for this example the min works
+    final_hydrograph['2005-04-02 00:00':'2005-04-02 00:00'] = float(final_hydrograph.min())
+
+    #4. Add more points as needed to smooth the curve
+    # Note: This is an iterative process, using a (factor*min) appproach is used here for speed of iteration 
+    final_hydrograph['2005-04-02 06:00':'2005-04-02 07:00'] = float(final_hydrograph.min()*1.05)
+    final_hydrograph['2005-04-02 14:00':'2005-04-02 15:00'] = float(final_hydrograph.min()*1.25)
+
+    #5. Smooth the iterated points
+    smooth_storm = final_hydrograph.interpolate(how = 'polynomial', order=3) 
+
+    f, ax = plt.subplots()
+    ax.plot(smooth_storm,color = 'green',label = 'Smoothed Storm')
+    ax.grid()
+    ax.legend(loc= 'best',  fontsize='small')
+
+    f.set_size_inches(6,4)
+    f.autofmt_xdate()
+    return smooth_storm
+
