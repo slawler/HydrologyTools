@@ -144,7 +144,9 @@ def GetPKFQ(gage):
     print('{} Data Saved in return_periods'.format(gage))
     
 def GotoUSGS(state):
-    url = 'https://waterdata.usgs.gov/nwis/uv?referred_module=sw&state_cd={}&site_tp_cd=OC&site_tp_cd=OC-CO&site_tp_cd=ES&site_tp_cd=LK&site_tp_cd=ST&site_tp_cd=ST-CA&site_tp_cd=ST-DCH&site_tp_cd=ST-TS&format=station_list'.format(state)
+    url = 'https://waterdata.usgs.gov/nwis/uv?referred_module=sw&state_cd={} / 
+    &site_tp_cd=OC&site_tp_cd=OC-CO&site_tp_cd=ES&site_tp_cd=LK&site_tp_cd=ST& /
+    site_tp_cd=ST-CA&site_tp_cd=ST-DCH&site_tp_cd=ST-TS&format=station_list'.format(state)
     print("\nCLICK HERE FOR USGS GAGES: \n", url)
     print("\nCLICK HERE FOR MAP: \n", 'https://maps.waterdata.usgs.gov/mapper/index.html')
 
@@ -278,8 +280,6 @@ def ComputeWeirFlow(df, breach_height, date_int, weir_coeff=2.0, breach_length=2
         ax2.xaxis.set_major_locator(days)
         ax3.xaxis.set_major_formatter(dateFmt)
         ax3.xaxis.set_major_locator(days)
-
-
 
         f.autofmt_xdate()
         
