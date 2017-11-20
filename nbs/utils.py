@@ -235,6 +235,45 @@ def GetRasData(hdf_plan_file, station):
     printbold('RAS Data for XS {}'.format(df.name))
     return df
 
+def GetRasUnsteadyFlow(hdf_plan_file):
+    with h5py.File(hdf_plan_file ,'r') as hf:
+        qs = hf.get('/Event Conditions/Unsteady/Boundary Conditions/Flow Hydrographs/')
+        df=pd.DataFrame()
+        for q in qs:
+            flow_name = q.split(': ')[-1]
+            print(flow_name)
+            ats =  qs[q].attrs
+            items = ats.items
+            for item in items():
+
+                if item[0] == 'Start Date': 
+                    start = item[1]
+                    start = start.astype(str)
+                    if start.split(' ')[-1][:4] == '2400': #HEC-RAS likes to end the day with 2400...confuses python!
+                        s = start.replace('2400', '0000')
+                    start = datetime.strptime(s, '%d%b%Y %H%M')
+                    #print('start', s)
+
+                elif item[0] == 'End Date' :
+                    end= item[1]
+                    end = end.astype(str)
+                    if end.split(' ')[-1][:4] == '2400':
+                        e = end.replace('2400', '0000')
+                    end = datetime.strptime(e, '%d%b%Y %H%M')
+                    #print('end',e )
+                else:
+                    continue
+
+            flow = qs[q][:]
+            flow = flow[:,1]
+            steps = len(flow) -1
+            freq = (end-start)/steps
+            idx = pd.date_range(start,end, freq=freq)
+            df[flow_name] = flow
+        df = df.set_index(pd.DatetimeIndex(idx))
+        return df
+
+
 def StageDischargePlot(df, figsize = (2,3)):
     x, y = df['flow'], df['stage']
     f, (ax) = plt.subplots()

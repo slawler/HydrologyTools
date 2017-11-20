@@ -182,6 +182,8 @@ def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, 
     polyfit  = np.polyfit(df['flow'],df['stage'],poly_order)
     polyfitline = np.poly1d(polyfit) 
     hydro =pd.DataFrame(base_hydrograph)
+    colname = hydro.columns
+    hydro.rename(columns ={colname[0]:'Base Hydrograph'}, inplace=True)
     stage = plotcomp(hydro, polyfitline,breach_elev)
     df_weir = ComputeWeirFlow(stage, breach_elev, date_int) 
     output_csv = os.path.join(data_dir, 'BreachData_{}_location_{}.tsv'.format(station, breach_point))
