@@ -173,7 +173,7 @@ def plotcomp(hydro, rawfitline, breach_stage=0):
     return stage
 
 
-def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, data_dir, date_int=6):
+def GetBreachFlow(base_hydrograph, site, rasdata, station, breach_point, breach_elev, data_dir, date_int=6):
     df = GetRasData(rasdata, station)
 
     # Plot a Rating Curve using Stage & Flow data
@@ -186,7 +186,7 @@ def GetBreachFlow(base_hydrograph, rasdata, station, breach_point, breach_elev, 
     hydro.rename(columns ={colname[0]:'Base Hydrograph'}, inplace=True)
     stage = plotcomp(hydro, polyfitline,breach_elev)
     df_weir = ComputeWeirFlow(stage, breach_elev, date_int) 
-    output_csv = os.path.join(data_dir, 'BreachData_{}_location_{}.tsv'.format(station, breach_point))
+    output_csv = os.path.join(data_dir, '{}_BreachData_{}_location_{}.tsv'.format(site, station, breach_point))
     df_weir.to_csv(output_csv, sep = '\t')
     
     printbold('\nInflow Data for Breach Location: ')
