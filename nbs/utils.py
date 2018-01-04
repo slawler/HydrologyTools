@@ -110,6 +110,21 @@ def Plot_dv_Peak(df, peaks, rank, gage, spline=False, days = 10):
         data = df[gage][start:stop].interpolate()
     data.plot(figsize=(10,2), grid='on', title = gage, marker='o', markersize= 1.5) 
 '''
+def PlotMultiPeak(df, peaks, rank, gage, spline=False, days=10):
+    epsilon = pd.Timedelta('{} day'.format(days))
+    peak = peaks.index[rank]
+    start = peak - epsilon 
+    stop = peak + epsilon
+    start = start.strftime(format = '%Y-%m-%d')
+    stop = stop.strftime(format = '%Y-%m-%d')
+    if spline:
+        data = df[gage][start:stop].interpolate(method='spline', order=2)
+    else:
+        data = df[gage][start:stop].interpolate()
+    plot = data.plot(figsize=(10,2), grid='on', title = gage, marker='o', markersize= 1.5)  
+    plot.set_xlim(pd.datetime(1900, 1, 1) , pd.datetime(2020, 1, 1))
+    return plot
+
 def PlotPeak(df, peaks, rank, gage, spline=False, days=10):
     epsilon = pd.Timedelta('{} day'.format(days))
     peak = peaks.index[rank]
@@ -121,7 +136,8 @@ def PlotPeak(df, peaks, rank, gage, spline=False, days=10):
         data = df[gage][start:stop].interpolate(method='spline', order=2)
     else:
         data = df[gage][start:stop].interpolate()
-    data.plot(figsize=(10,2), grid='on', title = gage, marker='o', markersize= 1.5) 
+    plot = data.plot(figsize=(10,2), grid='on', title = gage, marker='o', markersize= 1.5)  
+    return plot
 
 def Q_to_Stage(usgs_gage_id):
     url = r'https://waterdata.usgs.gov/nwisweb/get_ratings?site_no={}&file_type=exsa'.format(usgs_gage_id)
@@ -144,8 +160,7 @@ def GetPKFQ(gage):
     print('{} Data Saved in return_periods'.format(gage))
     
 def GotoUSGS(state):
-    url = 'https://waterdata.usgs.gov/nwis/uv?referred_module=sw&state_cd={}&site_tp_cd=OC&site_tp_cd=OC-CO&site_tp_cd=ES&site_tp_cd=LK&site_tp_cd=ST& \
-    site_tp_cd=ST-CA&site_tp_cd=ST-DCH&site_tp_cd=ST-TS&format=station_list'.format(state)
+    url = 'https://waterdata.usgs.gov/nwis/uv?referred_module=sw&state_cd={}&site_tp_cd=OC&site_tp_cd=OC-CO&site_tp_cd=ES&site_tp_cd=LK&site_tp_cd=ST&site_tp_cd=ST-CA&site_tp_cd=ST-DCH&site_tp_cd=ST-TS&format=station_list'.format(state)
     print("\nCLICK HERE FOR USGS GAGES: \n", url)
     print("\nCLICK HERE FOR MAP: \n", 'https://maps.waterdata.usgs.gov/mapper/index.html')
 
