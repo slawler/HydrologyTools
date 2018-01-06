@@ -15,7 +15,7 @@ using the R package [dataRetrieval](https://github.com/USGS-R/dataRetrieval) dev
 ## Notebooks
 ##### Data Tools
 +  [Download USGS Gage Data](nbs/GageGrabber.ipynb) (R)
-+  [Explore USGS Gage Data](nbs/GageExploprer.ipynb) (Python)
++  [Explore USGS Gage Data](nbs/GageExplorer.ipynb) (Python)
 
 ##### Discharge Hydrograph Development
 +  [Use historic gage data to develop a return period hydrograph](nbs/MethodologyOverview.ipynb)
