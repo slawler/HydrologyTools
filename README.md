@@ -25,6 +25,9 @@ using the R package [dataRetrieval](https://github.com/USGS-R/dataRetrieval) dev
 +  [Example # 2. Hypothetical Breach Hydrograph using 1D Steady State model results](nbs/WP_BreachHydro.ipynb)
 +  [Example # 3. Hypothetical Breach Hydrograph using data from HEC-RAS Unsteady Simulation](nbs/Deposit_BreachHydro.ipynb)
 
+##### Unpublished USGS Event: Downstream vs Upstream Hydrograph Comparison
++  [Hypothetical vs Observed Hydrograph](nbs/PeakEventComp.ipynb) (Python)
+
 ## Requirements
 To use the Notebooks available in this repository, the following software is required:
 - Python
