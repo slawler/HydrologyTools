@@ -1,4 +1,8 @@
 # HydrologyTools
+
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/Dewberry-RSG/HydrologyTools/master)
+
+
 #### Notebooks for working with USGS stream gage records & USACE modelling software. 
 *Source code written in Python & R*
 
